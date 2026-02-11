@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" $ }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ template "fullname" $ }}
+    app.kubernetes.io/instance: "{{ $.Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ $.Release.Service }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ template "fullname" $ }}
+      app.kubernetes.io/instance: "{{ $.Release.Name }}"
+      app.kubernetes.io/managed-by: "{{ $.Release.Service }}"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ template "fullname" $ }}
+        app.kubernetes.io/instance: "{{ $.Release.Name }}"
+        app.kubernetes.io/managed-by: "{{ $.Release.Service }}"
+    spec:
+      volumes:
+      - name: rsa-key
+        secret:
+          secretName: encryptor-service-rsa-key
+          items:
+            - key: CLIENT_SECRET
+              path: public.pem
+          defaultMode: 0400
+      containers:
+      - name: {{ template "fullname" . }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - name: rsa-key
+          mountPath: /etc/ssl/certs/rsa
+          readOnly: true
+        env:
+        - name: RSA_PUBLIC_KEY_PATH
+          value: /etc/ssl/certs/rsa/public.pem
+        {{- with .Values.startupProbe }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        ports:
+        {{- range $key, $value := .Values.containerPorts }}
+          - name: {{ $key }}
+            containerPort: {{ $value }}
+            protocol: TCP
+        {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 15
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 15

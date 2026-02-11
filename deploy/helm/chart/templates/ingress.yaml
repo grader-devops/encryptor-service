@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ template "fullname" $ }}
+  namespace: {{ .Release.Namespace }}
+{{- if .Values.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.ingress.annotations | indent 4 }}
+{{- end }}
+  labels:
+    app.kubernetes.io/name: {{ template "fullname" $ }}
+    app.kubernetes.io/instance: "{{ $.Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ $.Release.Service }}"
+spec:
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+  {{- range .Values.ingress.hosts }}
+    - host: {{ . }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ template "fullname" $ }}
+                port: 
+                  name: http
+  {{- end }}
+{{- end }}

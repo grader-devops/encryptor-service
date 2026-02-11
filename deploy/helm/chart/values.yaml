@@ -1,0 +1,68 @@
+replicaCount: 1
+
+ingress:
+  enabled: false
+  annotations: {}
+  kubernetes.io/ingress.class: nginx-ingress
+  hosts:
+    - test.com
+
+image:
+  repository: "harbor.ru/devops/encryptor-service"
+  tag: mmaster-cd46df6a
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
+  externalTrafficPolicy: Cluster
+
+containerPorts: 
+  http: 8080
+
+networkPolicy:
+  enabled: false
+  ingress:
+    from:
+    - ipBlock:
+        cidr: 10.20.5.6/24
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 300Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+serviceMonitor:
+  enabled: false
+
+affinity: {}
+
+startupProbe: {}
+  # httpGet:
+  #   path: /health
+  #   port: 80
+
+livenessProbe: {}
+  # httpGet:
+  #   path: /health
+  #   port: 80
+readinessProbe: {}
+  # httpGet:
+  #   path: /health
+  #   port: 80
+
+securityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  privileged: false
+  runAsGroup: 1000
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL

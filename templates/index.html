@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Хедер -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <h1>RSA Encryptor</h1>
+            </div>
+            <div class="status">
+                <span class="status-badge active">
+                    <i class="fas fa-circle"></i> Online
+                </span>
+            </div>
+        </header>
+
+            <!-- Основная форма -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-lock"></i> Шифрование данных</h2>
+                    <p class="subtitle">Введите текст для шифрования публичным ключом</p>
+                </div>
+
+                <form action="/encrypt" method="POST" class="encrypt-form" id="encryptForm">
+                    <div class="form-group">
+                        <label for="text">
+                            <i class="fas fa-pen"></i> Текст для шифрования
+                            <span class="hint">Максимальная длина зависит от размера ключа</span>
+                        </label>
+                        <textarea 
+                            id="text" 
+                            name="text" 
+                            rows="4" 
+                            placeholder="Введите любой текст, который нужно зашифровать..."
+                            required
+                            autofocus>{{.OriginalText}}</textarea>
+                        <div class="char-count">
+                            <span id="charCount">0</span> символов
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-shield-alt"></i> Зашифровать
+                        </button>
+                        <button type="button" onclick="clearForm()" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> Очистить
+                        </button>
+                        <button type="button" onclick="encryptExample()" class="btn btn-outline">
+                            <i class="fas fa-magic"></i> Пример
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Сообщения -->
+            {{if .Error}}
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <div>
+                    <strong>Ошибка</strong>
+                    <p>{{.Error}}</p>
+                </div>
+            </div>
+            {{end}}
+
+            {{if .Success}}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Успешно!</strong>
+                    <p>Текст зашифрован. Используйте результат ниже.</p>
+                </div>
+            </div>
+            {{end}}
+
+            <!-- Результат -->
+            {{if .EncryptedText}}
+            <div class="card result-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-check-circle"></i> Результат</h2>
+                    <div class="actions">
+                        <button onclick="copyResult()" class="btn btn-small">
+                            <i class="fas fa-copy"></i> Копировать
+                        </button>
+                        <button onclick="downloadResult()" class="btn btn-small">
+                            <i class="fas fa-download"></i> Скачать
+                        </button>
+                    </div>
+                </div>
+
+                <div class="result-content">
+                    <div class="result-section">
+                        <h3><i class="fas fa-file-alt"></i> Исходный текст:</h3>
+                        <div class="result-box">
+                            <pre>{{.OriginalText}}</pre>
+                        </div>
+                    </div>
+
+                    <div class="result-section">
+                        <h3><i class="fas fa-lock"></i> Зашифрованный текст (Base64):</h3>
+                        <div class="result-box encrypted">
+                            <pre><code class="language-base64">{{.EncryptedText}}</code></pre>
+                        </div>
+                        <div class="result-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Этот текст можно безопасно передавать публично</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>RSA Encryptor</span>
+                </div>
+                <div class="footer-links">
+                    <a href="/health" target="_blank"><i class="fas fa-heartbeat"></i> Health Check</a>
+                    <a href="https://github.com/yourusername/rsa-encryptor" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+                </div>
+            </div>
+            <p class="copyright">© 2026 RSA Encryptor Service | Для безопасной передачи данных</p>
+        </footer>
+    </div>
+
+    <!-- Highlight.js для подсветки синтаксиса -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/javascript.min.js"></script>
+    
+    <script>
+        // Инициализация подсветки синтаксиса
+        hljs.highlightAll();
+        
+        // Счетчик символов
+        document.getElementById('text').addEventListener('input', function() {
+            const count = this.value.length;
+            document.getElementById('charCount').textContent = count;
+            
+            // Предупреждение при большом тексте
+            const warning = document.getElementById('sizeWarning');
+            if (count > 400 && !warning) {
+                const div = document.createElement('div');
+                div.id = 'sizeWarning';
+                div.className = 'warning';
+                div.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Большой текст может быть разбит на блоки для шифрования';
+                this.parentNode.appendChild(div);
+            } else if (count <= 400 && warning) {
+                warning.remove();
+            }
+        });
+        
+        // Копирование результата
+        function copyResult() {
+            const encryptedText = `{{.EncryptedText}}`;
+            navigator.clipboard.writeText(encryptedText).then(() => {
+                showNotification('Текст скопирован в буфер обмена!', 'success');
+            }).catch(err => {
+                showNotification('Ошибка копирования: ' + err, 'error');
+            });
+        }
+        
+        // Скачивание результата
+        function downloadResult() {
+            const encryptedText = `{{.EncryptedText}}`;
+            const originalText = `{{.OriginalText}}`;
+            const blob = new Blob([
+                `# RSA Encrypted Data\n`,
+                `# Generated: ${new Date().toISOString()}\n`,
+                `# Original: ${originalText}\n\n`,
+                encryptedText
+            ], { type: 'text/plain' });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `encrypted_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Файл скачан!', 'success');
+        }
+        
+        // Очистка формы
+        function clearForm() {
+            document.getElementById('encryptForm').reset();
+            document.getElementById('charCount').textContent = '0';
+            document.querySelectorAll('.alert, .result-card').forEach(el => el.remove());
+        }
+        
+        // Пример текста
+        function encryptExample() {
+            const examples = [
+                "Секретное сообщение для передачи",
+                "API ключ: sk_live_1234567890abcdef",
+                "Пароль: SuperSecret123!",
+                "Конфиденциальные данные: {user: 'admin', role: 'superuser'}",
+                "Токен доступа: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            ];
+            
+            const randomExample = examples[Math.floor(Math.random() * examples.length)];
+            document.getElementById('text').value = randomExample;
+            document.getElementById('text').dispatchEvent(new Event('input'));
+        }
+        
+        // Переключение табов
+        function showTab(tabName) {
+            // Скрыть все табы
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Убрать активный класс у всех кнопок
+            document.querySelectorAll('.tab').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Показать выбранный таб
+            document.getElementById(tabName).style.display = 'block';
+            
+            // Активировать кнопку
+            event.target.classList.add('active');
+            
+            // Переинициализировать подсветку
+            hljs.highlightAll();
+        }
+        
+        // Показать уведомление
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Автоматическое увеличение высоты textarea
+        document.getElementById('text').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    </script>
+</body>
+</html>

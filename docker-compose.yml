@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  encryptor-service:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - RSA_PUBLIC_KEY_PATH=/app/public.pem
+      - PORT=8080
+    volumes:
+      - ./public.pem:/app/public.pem:ro
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
+    restart: unless-stopped
